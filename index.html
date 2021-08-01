@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+
+  <head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="./d3.min.js"></script>
+    <title>全国大学</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        height: 100vh;
+        width: 100vw;
+        overflow: hidden;
+      }
+
+      svg {
+        height: 100%;
+        width: 100%;
+        background-color: antiquewhite;
+      }
+      #tooltip {
+        padding: 50px;
+        position: fixed;
+        background-color: #9CC7DF;
+        color: #666;
+        max-height: 500px;
+        overflow-y: scroll;
+      }
+      #tooltip .name {
+        font-size: 20px;
+        font-weight: bolder;
+        margin-bottom: 20px;
+      }
+      #tooltip .info {
+        font-size: 16px;
+        margin-top: 5px;
+      }
+      #title {
+        position: fixed;
+        left: calc(50% - 144px);
+        top: 10px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <svg></svg>
+    <div id="title">
+      <h1>中国大学分部可视化</h1>
+      <span style="float: right;">by WindStormrage</span>
+    </div>
+    <div id="tooltip">
+      <div class="name"></div>
+      <div class="info"></div>
+    </div>
+    <script>
+      const svg = d3.select('svg')
+
+      const { height, width } = svg.node().getBoundingClientRect()
+      const padding = 100
+      const innerHeight = height - padding * 2,
+        innerWidth = width - padding * 2
+
+      const colors = d3.scaleOrdinal(d3.schemePaired)
+      // 通过interpolator插值器来实现线性连续的颜色插值
+      let provinceSequentialColor
+      let citySequentialColor
+
+      let activeProvince = ''
+
+      // svg.append('rect')
+      //   .attr('x', width / 4)
+      //   .attr('y', height / 4)
+      //   .attr('width', width / 2)
+      //   .attr('height', height / 2)
+      //   .attr('stroke', 'red')
+      //   .attr('fill', 'transparent')
+
+      const map = svg.append('g')
+        .attr('stroke', colors(1))
+        .attr('stroke-width', 1)
+        .attr('fill', 'transparent')
+        .attr('transform', 'translate(' + padding + ',' + padding + ')')
+
+      const cityGroup = map.append('g')
+        .attr('class', `cityGroup`)
+      const provinceGroup = map.append('g')
+        .attr('class', 'provinceGroup')
+      const textGroup = map.append('g')
+        .attr('class', 'textGroup')
+
+      const province = [110000, 120000, 130000, 140000, 150000, 210000, 220000, 230000, 310000, 320000, 330000, 340000, 350000, 360000, 370000, 410000, 420000, 430000, 440000, 450000, 460000, 500000, 510000, 520000, 530000, 540000, 610000, 620000, 630000, 640000, 650000, 710000, 810000, 820000]
+      let cityData = {}
+      let provinceData = {}
+      const provincePosition = {}
+      let provinceGroupPosition = {}
+
+      let school = []
+
+      const promises = [
+        d3.csv('./school.csv'),
+        d3.json('./map/geoJson数据包/100000.json'),
+        d3.json('./map/geoJson数据包/100000/110000.geoJson'),
+        d3.json('./map/geoJson数据包/100000/120000.geoJson'),
+        d3.json('./map/geoJson数据包/100000/130000.geoJson'),
+        d3.json('./map/geoJson数据包/100000/140000.geoJson'),
+        d3.json('./map/geoJson数据包/100000/150000.geoJson'),
+        d3.json('./map/geoJson数据包/100000/210000.geoJson'),
+        d3.json('./map/geoJson数据包/100000/220000.geoJson'),
+        d3.json('./map/geoJson数据包/100000/230000.geoJson'),
+        d3.json('./map/geoJson数据包/100000/310000.geoJson'),
+        d3.json('./map/geoJson数据包/100000/320000.geoJson'),
+        d3.json('./map/geoJson数据包/100000/330000.geoJson'),
+        d3.json('./map/geoJson数据包/100000/340000.geoJson'),
+        d3.json('./map/geoJson数据包/100000/350000.geoJson'),
+        d3.json('./map/geoJson数据包/100000/360000.geoJson'),
+        d3.json('./map/geoJson数据包/100000/370000.geoJson'),
+        d3.json('./map/geoJson数据包/100000/410000.geoJson'),
+        d3.json('./map/geoJson数据包/100000/420000.geoJson'),
+        d3.json('./map/geoJson数据包/100000/430000.geoJson'),
+        d3.json('./map/geoJson数据包/100000/440000.geoJson'),
+        d3.json('./map/geoJson数据包/100000/450000.geoJson'),
+        d3.json('./map/geoJson数据包/100000/460000.geoJson'),
+        d3.json('./map/geoJson数据包/100000/500000.geoJson'),
+        d3.json('./map/geoJson数据包/100000/510000.geoJson'),
+        d3.json('./map/geoJson数据包/100000/520000.geoJson'),
+        d3.json('./map/geoJson数据包/100000/530000.geoJson'),
+        d3.json('./map/geoJson数据包/100000/540000.geoJson'),
+        d3.json('./map/geoJson数据包/100000/610000.geoJson'),
+        d3.json('./map/geoJson数据包/100000/620000.geoJson'),
+        d3.json('./map/geoJson数据包/100000/630000.geoJson'),
+        d3.json('./map/geoJson数据包/100000/640000.geoJson'),
+        d3.json('./map/geoJson数据包/100000/650000.geoJson'),
+        d3.json('./map/geoJson数据包/100000/710000.geoJson'),
+        d3.json('./map/geoJson数据包/100000/810000.geoJson'),
+        d3.json('./map/geoJson数据包/100000/820000.geoJson'),
+      ]
+
+      const provinceMap = {
+        '北京市': '北京',
+        '天津市': '天津',
+        '河北省': '河北',
+        '山西省': '山西',
+        '内蒙古自治区': '内蒙古',
+        '辽宁省': '辽宁',
+        '吉林省': '吉林',
+        '黑龙江省': '黑龙江',
+        '上海市': '上海',
+        '江苏省': '江苏',
+        '浙江省': '浙江',
+        '安徽省': '安徽',
+        '福建省': '福建',
+        '江西省': '江西',
+        '山东省': '山东',
+        '河南省': '河南',
+        '湖北省': '湖北',
+        '湖南省': '湖南',
+        '广东省': '广东',
+        '广西壮族自治区': '广西',
+        '海南省': '海南',
+        '重庆市': '重庆',
+        '四川省': '四川',
+        '贵州省': '贵州',
+        '云南省': '云南',
+        '西藏自治区': '西藏',
+        '陕西省': '陕西',
+        '甘肃省': '甘肃',
+        '青海省': '青海',
+        '宁夏回族自治区': '宁夏',
+        '新疆维吾尔自治区': '新疆',
+        '台湾省': '台湾',
+        '香港特别行政区': '香港',
+        '澳门特别行政区': '澳门',
+      }
+      // 请求所有数据
+      Promise.all(promises).then(data => {
+        const schoolData = data.shift()
+        provinceData = data.shift()
+        data.forEach((datum, index) => {
+          cityData[province[index]] = datum
+        })
+        editSchoolData(schoolData)
+        drawProvince()
+        drawCity()
+        drawProvinceName()
+        bindSvgClick()
+      })
+
+      const projection = d3.geoMercator()
+      // 处理学校数据
+      function editSchoolData(data) {
+        schoolData = []
+        data.forEach(item => {
+          if (!schoolData[item['省份']]) {
+            schoolData[item['省份']] = {
+              name: item['省份'],
+              count: 0,
+              children: {}
+            }
+          }
+          if (!schoolData[item['省份']].children[item['城市']]) {
+            schoolData[item['省份']].children[item['城市']] = {
+              name: item['城市'],
+              count: 0,
+              children: []
+            }
+          }
+          schoolData[item['省份']].count++
+          schoolData[item['省份']].children[item['城市']].count++
+          schoolData[item['省份']].children[item['城市']].children.push(item)
+        })
+
+        // 设置颜色
+        const provinceColorDomain = []
+        const cityColorDomain = []
+        for (const key in schoolData) {
+          provinceColorDomain.push(schoolData[key].count)
+          for (const k in schoolData[key].children) {
+            cityColorDomain.push(schoolData[key].children[k].count)
+          }
+        }
+        provinceSequentialColor = d3.scaleSequential()
+          .domain(d3.extent(provinceColorDomain, i => i))
+          .interpolator(d3.interpolateYlGn)
+        citySequentialColor = d3.scaleSequential()
+          .domain(d3.extent(cityColorDomain, i => i))
+          .interpolator(d3.interpolateYlGn)
+        console.log(schoolData);
+      }
+
+      // 绘制省份
+      function drawProvince() {
+        const jsonPath = d3.geoPath(projection)
+        // TODO: transform origin有问题
+        // projection.fitSize([innerWidth, innerHeight], provinceData)
+        if (1.029211956521739 > innerWidth / innerHeight) {
+          projection.fitWidth(innerWidth, provinceData)
+        } else {
+          projection.fitHeight(innerHeight, provinceData)
+        }
+        provinceGroup
+          .selectAll('.province')
+          .data(provinceData.features)
+          .join('path')
+          .attr('d', jsonPath)
+          .attr('class', d => `province ${d.properties.name}`)
+          .attr('stroke', colors(2))
+          .attr('fill', (d) =>
+            provinceSequentialColor(schoolData[provinceMap[d.properties.name]]?.count || 0))
+          .attr('cursor', 'pointer')
+          .on('mouseenter', function () {
+            showName.call(this)
+          })
+          .on('mouseleave', function () {
+            hideName.call(this)
+          })
+          .on('click', function () {
+            setActive.call(this)
+          })
+        provinceGroupPosition = provinceGroup.node().getBoundingClientRect()
+      }
+
+      // 绘制省份名称
+      function drawProvinceName() {
+        textGroup.selectAll('text')
+          .data(provinceData.features)
+          .join('text')
+          .text(d => d.properties.name)
+          .attr('class', d => d.properties.name)
+          .attr('x', d => projection(d.properties.center)[0])
+          .attr('y', d => projection(d.properties.center)[1])
+          .attr('stroke', colors(4))
+          .attr('fill', colors(4))
+          .attr('text-anchor', 'middle')
+          .attr('opacity', '0')
+          .attr('style', 'pointer-events: none;')
+          .on('mouseenter', function () {
+            showName.call(this)
+          })
+          .on('mouseleave', function () {
+            hideName.call(this)
+          })
+      }
+
+      // 根据省份位置大小绘制城市
+      function drawCity() {
+        provinceGroup.selectAll('path').nodes().forEach(province => {
+          // 确定省份的大小和位置
+          const rect = province.getBoundingClientRect()
+          const [x, y, width, height] = [
+            rect.x - padding,
+            rect.y - padding,
+            rect.width,
+            rect.height
+          ]
+          const name = province.__data__.properties.name
+          const city = cityData[province.__data__.properties.adcode]
+          provincePosition[name] = {
+            x: rect.x,
+            y: rect.y,
+            width: rect.width,
+            height: rect.height
+          }
+
+          // fitExtent的第二个参数不是高宽,而是类似于 getBoundingClientRect 的 right butom
+          const projection = d3.geoMercator().fitExtent([[x, y], [x + width, y + height]], city)
+          const jsonPath = d3.geoPath(projection)
+
+          // 每个省份创建一个g, g里面绘制城市
+          cityGroup.append('g')
+            .attr('class', `${name}`)
+            .selectAll('.city')
+            .data(city.features)
+            .join('path')
+            .attr('opacity', '0')
+            .attr('d', jsonPath)
+            .attr('class', 'city')
+            .attr('cursor', 'pointer')
+            .attr('fill', d =>
+              citySequentialColor(
+                schoolData[provinceMap[province.__data__.properties.name]]
+                  ?.children[d.properties.name]
+                  ?.count || 0
+              )
+            )
+            .on('click', function (e) {
+              const tooltip = document.getElementById('tooltip')
+              console.log(tooltip);
+              // tooltip.style.left = `${e.pageX} + ${provinceGroupPosition.x}px`
+              // tooltip.style.top = `${e.pageY} + ${provinceGroupPosition.y}px`
+              tooltip.style.right = `0px`
+              tooltip.style.top = `0px`
+              document.querySelector('#tooltip .name').innerHTML = `
+                ${this.__data__.properties.name}
+                ${schoolData[provinceMap[province.__data__.properties.name]]
+                  ?.children[this.__data__.properties.name].count}
+              `
+              const cityInfo = schoolData[provinceMap[province.__data__.properties.name]]
+                  ?.children[this.__data__.properties.name]
+              let html = ''
+              cityInfo.children.forEach(item => {
+                html += `
+                  <li>
+                    <span>${item['学校']}</span>
+                    <span>${item['水平层次']}</span>
+                    <span>${item['办学类型']}</span>
+                    <span>${item['办学类别']}</span>
+                    <span>${item['985'] === '是' ? '985':''}</span>
+                    <span>${item['211'] === '是' ? '211':''}</span>
+                    <span>${item['双一流'] === '是' ? '双一流':''}</span>
+                  </li>
+                `
+              })
+              document.querySelector('#tooltip .info').innerHTML = html
+            })
+        });
+      }
+
+      // 最外层添加点击事件取消地图选择
+      function bindSvgClick() {
+        svg
+          .on('click', function (e) {
+            // 点击是最外面的话就取消选择
+            if (e.path[0] === this) {
+              exitSelect()
+            }
+          })
+          .on('dblclick', function (e) {
+            // 双击也取消
+            exitSelect()
+          })
+      }
+
+      // 省份和名字的点击事件选中地图
+      function setActive() {
+        const name = this.__data__.properties.name
+        // 如果点击的就是当前高亮就结束
+        if (name === activeProvince) return
+        // 先恢复其他的,
+        exitSelect(true)
+        // 点击省份显示城市
+        activeProvince = name
+        cityGroup.select(`.${name}`)
+          .selectAll('path')
+          .attr('opacity', '1')
+        provinceGroup.select(`.${name}`)
+          // .attr('fill', 'transparent')
+          .attr('display', 'none')
+        textGroup.selectAll('text')
+          .attr('opacity', '0')
+
+        // 先获得放大后的位置
+        const x1 = svg.node().getBoundingClientRect().width / 4
+        const y1 = svg.node().getBoundingClientRect().height / 4
+        // 当前的位置
+        const { x, y, width, height } = provincePosition[name]
+        // 需要放大的倍数, 如果省份太长就按照长度撑满, 太宽宽度撑满
+        let scale = 1
+        // 放大后靠着左上角,所以如果太窄需要进行偏移到中间 TODO:
+        const add = { x: 0, y: 0 }
+        if (x1 / y1 > width / height) {
+          scale = (2 * y1) / height
+          add.x = x1 - width / height * y1
+        } else {
+          scale = (2 * x1) / width
+          add.y = y1 - height / width * x1
+        }
+        // 放大的左上角
+        let { x: x0, y: y0 } = provinceGroupPosition
+        // x0 = x0 + add.x
+        // y0 = y0 + add.y
+        // console.log(x0, y0);
+        console.log(add);
+
+        provinceGroup.transition()
+          .duration(500)
+          .attr("transform", `
+            scale(${scale}, ${scale})
+            translate(${(x1 - x0) / scale - (x - x0)}, ${(y1 - y0) / scale - (y - y0)})
+          `)
+          .attr('stroke-width', 2 / scale)
+        cityGroup
+          .transition()
+          .duration(500)
+          .attr("transform", `
+            scale(${scale}, ${scale})
+            translate(${(x1 - x0) / scale - (x - x0)}, ${(y1 - y0) / scale - (y - y0)})
+          `)
+          .attr('stroke-width', 2 / scale)
+      }
+
+      // 取消省份的选择
+      function exitSelect(isChange) {
+        activeProvince = ''
+        cityGroup.selectAll('g').selectAll('path')
+          .attr('opacity', '0')
+        provinceGroup.selectAll('path')
+          .attr('display', 'unset')
+        // 如果是改变触发就不会恢复位置
+        if (!isChange) {
+          provinceGroup.transition()
+            .attr('transform', 'scale(1, 1) translate(0, 0)')
+        }
+        document.getElementById('tooltip').style.right = '-999px'
+      }
+
+      // 鼠标移入显示文字
+      function showName() {
+        const name = this.__data__.properties.name
+        // 选中放大后就不显示文字, 位置懒得确定
+        if (activeProvince !== '') return
+        textGroup.select(`.${name}`)
+          .attr('opacity', '1')
+      }
+      
+      // 鼠标移出隐藏文字
+      function hideName() {
+        const name = this.__data__.properties.name
+        textGroup.select(`.${name}`)
+          .attr('opacity', '0')
+      }
+    </script>
+  </body>
+
+</html>
