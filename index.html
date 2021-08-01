@@ -231,7 +231,6 @@
         citySequentialColor = d3.scaleSequential()
           .domain(d3.extent(cityColorDomain, i => i))
           .interpolator(d3.interpolateYlGn)
-        console.log(schoolData);
       }
 
       // 绘制省份
@@ -331,7 +330,6 @@
             )
             .on('click', function (e) {
               const tooltip = document.getElementById('tooltip')
-              console.log(tooltip);
               // tooltip.style.left = `${e.pageX} + ${provinceGroupPosition.x}px`
               // tooltip.style.top = `${e.pageY} + ${provinceGroupPosition.y}px`
               tooltip.style.right = `0px`
@@ -352,7 +350,6 @@
                   ${province.__data__.properties.name}
                   ${schoolData[provinceMap[province.__data__.properties.name]]?.count}
                 `
-                console.log(cityInfo);
               }
               cityInfo.forEach(item => {
                 html += `
