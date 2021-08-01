@@ -339,12 +339,22 @@
               document.querySelector('#tooltip .name').innerHTML = `
                 ${this.__data__.properties.name}
                 ${schoolData[provinceMap[province.__data__.properties.name]]
-                  ?.children[this.__data__.properties.name].count}
+                  ?.children[this.__data__.properties.name]?.count}
               `
               const cityInfo = schoolData[provinceMap[province.__data__.properties.name]]
-                  ?.children[this.__data__.properties.name]
+                  ?.children[this.__data__.properties.name]?.children || []
               let html = ''
-              cityInfo.children.forEach(item => {
+              if (!cityInfo?.length) {
+                for (const key in schoolData[provinceMap[province.__data__.properties.name]].children) {
+                  cityInfo.push(...schoolData[provinceMap[province.__data__.properties.name]].children[key].children)
+                }
+                document.querySelector('#tooltip .name').innerHTML = `
+                  ${province.__data__.properties.name}
+                  ${schoolData[provinceMap[province.__data__.properties.name]]?.count}
+                `
+                console.log(cityInfo);
+              }
+              cityInfo.forEach(item => {
                 html += `
                   <li>
                     <span>${item['学校']}</span>
